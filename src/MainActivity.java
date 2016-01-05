@@ -88,7 +88,7 @@ public class MainActivity extends Activity implements OnClickListener {
                          " -> " + current;
             final String full = "Muse " + p.getSource().getMacAddress() +
                                 " " + status;
-            Log.i("Muse Headband", full);
+            Log.i("Muse Headband kt", full);
             Activity activity = activityRef.get();
             // UI thread is used here only because we need to update
             // TextView values. You don't have to use another thread, unless
