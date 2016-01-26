@@ -101,7 +101,25 @@ public class MainActivity extends Activity implements OnClickListener {
     int data_set_cnt = 0;
     long data_time_stamp = 0;
     long data_time_stamp_ref = 0;
-    
+    double[] alphaAbsoluteElem = {0,0,0,0};
+    double[] betaAbsoluteElem = {0,0,0,0};
+    double[] deltaAbsoluteElem = {0,0,0,0};
+    double[] gammaAbsoluteElem = {0,0,0,0};
+    double[] thetaAbsoluteElem = {0,0,0,0};
+    int[]    horseshoeElem     = {0,0,0,0};
+   
+    // bit masks for packet types:
+    public static final int AlphaAbsolute=1;
+    public static final int BetaAbsolute  = 2;
+    public static final int DeltaAbsolute = 4;
+    public static final int GammaAbsolute = 8;
+    public static final int ThetaAbsolute = 0x10;
+    public static final int Horseshoe     = 0x20;
+    public static final int AllDataMask = AlphaAbsolute | BetaAbsolute |
+	DeltaAbsolute | GammaAbsolute | ThetaAbsolute | Horseshoe;
+   
+    int got_data_mask=0;
+	
     /**
      * Connection listener updates UI with new connection status and logs it.
      */
@@ -189,6 +207,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		if (fileWriter.getBufferedMessagesSize() > 8096)
 		    fileWriter.flush();
 		break;
+	    case HORSESHOE:	
 	    case ALPHA_ABSOLUTE:
 		//case ALPHA_SCORE:
 	    case BETA_ABSOLUTE:
@@ -218,6 +237,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	private void handleWaivePacket(MuseDataPacket p, final ArrayList<Double> data) //(MuseDataPacket p)
 	{
 	    double elem1 = 0, elem2 = 0, elem3 = 0, elem4 = 0;
+	    
 	    //final ArrayList<Double> data = p.getValues();
 	    boolean got_data = false;
 	    long muse_tstamp = p.getTimestamp();
@@ -228,56 +248,88 @@ public class MainActivity extends Activity implements OnClickListener {
 	    switch (p.getPacketType())
 	    {
 	    case ALPHA_ABSOLUTE:
+		alphaAbsoluteElem[0] = data.get(Eeg.TP9.ordinal());
+		alphaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
+		alphaAbsoluteElem[2] = data.get(Eeg.FP2.ordinal());
+		alphaAbsoluteElem[3] = data.get(Eeg.TP10.ordinal());
+		got_data_mask |= AlphaAbsolute;
+		break;
+
+	    case BETA_ABSOLUTE:
+		betaAbsoluteElem[0] = data.get(Eeg.TP9.ordinal());
+		betaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
+		betaAbsoluteElem[2] = data.get(Eeg.FP2.ordinal());
+		betaAbsoluteElem[3] = data.get(Eeg.TP10.ordinal());
+		got_data_mask |= BetaAbsolute;
+		break;
+		
+	    case DELTA_ABSOLUTE:
+		deltaAbsoluteElem[0] = data.get(Eeg.TP9.ordinal());
+		deltaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
+		deltaAbsoluteElem[2] = data.get(Eeg.FP2.ordinal());
+		deltaAbsoluteElem[3] = data.get(Eeg.TP10.ordinal());
+		got_data_mask |= DeltaAbsolute;
+		break;
+		
+	    case GAMMA_ABSOLUTE:
+		gammaAbsoluteElem[0] = data.get(Eeg.TP9.ordinal());
+		gammaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
+		gammaAbsoluteElem[2] = data.get(Eeg.FP2.ordinal());
+		gammaAbsoluteElem[3] = data.get(Eeg.TP10.ordinal());	
+		got_data_mask  |= GammaAbsolute;
+
+	    case THETA_ABSOLUTE:
+		thetaAbsoluteElem[0] = data.get(Eeg.TP9.ordinal());
+		thetaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
+		thetaAbsoluteElem[2] = data.get(Eeg.FP2.ordinal());
+		thetaAbsoluteElem[3] = data.get(Eeg.TP10.ordinal());
+		got_data_mask |= ThetaAbsolute;
+		break;
+		
+	    case HORSESHOE:
+		int helem1 = 0, helem2 = 0, helem3 = 0, helem4 = 0;
 		elem1 = data.get(Eeg.TP9.ordinal());
 		elem2 = data.get(Eeg.FP1.ordinal());
 		elem3 = data.get(Eeg.FP2.ordinal());
 		elem4 = data.get(Eeg.TP10.ordinal());
-		got_data = true;
+	
+		horseshoeElem[0] = (int)elem1;
+		horseshoeElem[1] = (int)elem2;
+		horseshoeElem[2] = (int)elem3;
+		horseshoeElem[3] = (int)elem4;
+		got_data_mask   |= Horseshoe;
+		/*
+		String strData = tstamp-data_time_stamp_ref + ",,,,," +
+		    Integer.toHexString(helem1).toUpperCase() + "," +
+		    Integer.toHexString(helem2).toUpperCase() + "," +
+		    Integer.toHexString(helem3).toUpperCase() + "," +
+		    Integer.toHexString(helem4).toUpperCase() + "\r\n";
+		print_line.printf(strData);
+		*/
 		break;
-		//case ALPHA_SCORE:
-		//break;
-	    case BETA_ABSOLUTE:
-		break;
-		//case BETA_RELATIVE:
-		//break;
-		//case BETA_SCORE:
-		//break;
-	    case DELTA_ABSOLUTE:
-		break;
-		//case DELTA_RELATIVE:
-		//break;
-		//case DELTA_SCORE:
-		//break;
-	    case GAMMA_ABSOLUTE:
-		break;
-		//case GAMMA_RELATIVE:
-		//break;
-		//case GAMMA_SCORE:
-		//break;
-	    case THETA_ABSOLUTE:
-		break;
-		//case THETA_RELATIVE:
-		//break;
-		//case THETA_SCORE:
-		//	break;
 	    }
-	    // write/append data to file
-	    
-	    String strData = tstamp-data_time_stamp_ref + "," +
-		             elem1 + "," + elem2 + "," + elem3 + "," + elem4 + "\r\n";
-	    if(got_data == true)
+	    // write/append data to file	    
+	    if(got_data_mask == AllDataMask )
 	    {
+		String strData = tstamp-data_time_stamp_ref + "," +
+		    alphaAbsoluteElem[0] + "," + alphaAbsoluteElem[1] + "," + alphaAbsoluteElem[2] + "," + alphaAbsoluteElem[3] + "," +
+		    betaAbsoluteElem[0]  + "," + betaAbsoluteElem[1]  + "," + betaAbsoluteElem[2]  + "," + betaAbsoluteElem[3]  + "," +
+		    deltaAbsoluteElem[0] + "," + deltaAbsoluteElem[1] + "," + deltaAbsoluteElem[2] + "," + deltaAbsoluteElem[3] + "," +
+		    gammaAbsoluteElem[0] + "," + gammaAbsoluteElem[1] + "," + gammaAbsoluteElem[2] + "," + gammaAbsoluteElem[3] + "," +
+		    thetaAbsoluteElem[0] + "," + thetaAbsoluteElem[1] + "," + thetaAbsoluteElem[2] + "," + thetaAbsoluteElem[3] + "," +
+		    horseshoeElem[0]     + "," + horseshoeElem[1]     + "," + horseshoeElem[2]     + "," + horseshoeElem[3] +
+		    "\r\n";
 		waive_pkt_cnt++; //for debug
-		if(waive_pkt_cnt == 5) //for debug
-		    waive_pkt_cnt = 0;
-		if(elem1!= 0 && elem2!=0 && elem3!=0 && elem4!=0)
+		//if(waive_pkt_cnt == 5) //for debug
+		//    waive_pkt_cnt = 0;
+		//if(elem1!= 0 && elem2!=0 && elem3!=0 && elem4!=0)
 		{
 		    print_line.printf(strData);
+		    got_data_mask = 0;
 		    data_set_cnt++;
 		    //if (writeData.getBufferedMessagesSize() > 8096)
 		    if(data_set_cnt == 5) // tune the final number
 		    {
-			//Log.i("Alpha Absolute cnt=" + Integer.toString(waive_pkt_cnt) + strData );
 			Log.i("Muse packet timestamp=",  String.valueOf(muse_tstamp));
 			data_set_cnt = 0;
 			try {
@@ -432,7 +484,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 	print_line = new PrintWriter( writeData );
 	//fileWriterData.addAnnotationString(1, "alpha, beta, delta, gamma, theta,");
-	String strData = "Time ms,AlphaAbs1,AlphaAbs2,AlphaAbs3,AlphaAbs4" + "\r\n";
+	String strData = "Time ms,AlphaAbs0,AlphaAbs1,AlphaAbs2,AlphaAbs3, BetaAbs0, BetaAbs1, BetaAbs2, BetaAbs3, DeltaAbs0, DeltaAbs1, DeltaAbs2, DeltaAbs3, GammaAbs0, GammaAbs1, GammaAbs2, GammaAbs3, ThetaAbs0, ThetaAbs1, ThetaAbs2, ThetaAbs3, Horseshoe0, Horseshoe1, Horseshoe2, Horseshoe4 " + "\r\n";
+//Sensor1, Sensor2, Sensor3, Sensor4 " + "\r\n";
 	print_line.printf(strData);
     }
 
@@ -567,12 +620,27 @@ public class MainActivity extends Activity implements OnClickListener {
                                   MuseDataPacketType.EEG);
         muse.registerDataListener(dataListener,
                                   MuseDataPacketType.ALPHA_RELATIVE);
-	muse.registerDataListener(dataListener,
-                                  MuseDataPacketType.ALPHA_ABSOLUTE);
+	
         muse.registerDataListener(dataListener,
                                   MuseDataPacketType.ARTIFACTS);
         muse.registerDataListener(dataListener,
                                   MuseDataPacketType.BATTERY);
+	//kt start:
+	muse.registerDataListener(dataListener,
+                                  MuseDataPacketType.ALPHA_ABSOLUTE);
+	muse.registerDataListener(dataListener,
+                                  MuseDataPacketType.BETA_ABSOLUTE);
+	muse.registerDataListener(dataListener,
+                                  MuseDataPacketType.DELTA_ABSOLUTE);
+	muse.registerDataListener(dataListener,
+                                  MuseDataPacketType.GAMMA_ABSOLUTE);
+	muse.registerDataListener(dataListener,
+                                  MuseDataPacketType.THETA_ABSOLUTE);
+	
+	muse.registerDataListener(dataListener,
+                                  MuseDataPacketType.HORSESHOE);
+	//kt end
+	
         muse.setPreset(MusePreset.PRESET_14);
         muse.enableDataTransmission(dataTransmission);
     }
