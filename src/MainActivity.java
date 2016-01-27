@@ -32,7 +32,10 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
-
+//kt:
+import android.media.ToneGenerator;
+import android.media.AudioManager;
+    
 import com.interaxon.libmuse.Accelerometer;
 import com.interaxon.libmuse.AnnotationData;
 import com.interaxon.libmuse.ConnectionState;
@@ -71,6 +74,8 @@ import com.interaxon.libmuse.MuseVersion;
   THETA_RELATIVE);
   THETA_SCORE);
 */
+// does not exist : import java.awt.Toolkit;
+
 
 
 /**
@@ -103,13 +108,15 @@ public class MainActivity extends Activity implements OnClickListener {
     long data_time_stamp = 0;
     long data_time_stamp_ref = 0;
     long pkt_timestamp  = 0;
+    long pkt_timestamp_ref = 0;
+    
     double[] eegElem = {0,0,0,0};
     double[] alphaAbsoluteElem = {0,0,0,0};
     double[] betaAbsoluteElem = {0,0,0,0};
     double[] deltaAbsoluteElem = {0,0,0,0};
     double[] gammaAbsoluteElem = {0,0,0,0};
     double[] thetaAbsoluteElem = {0,0,0,0};
-    int[]    horseshoeElem     = {0,0,0,0};
+    public int[]    horseshoeElem     = {0,0,0,0};
     //int artifactsElem = 0;
     
     // bit masks for packet types:
@@ -126,7 +133,21 @@ public class MainActivity extends Activity implements OnClickListener {
 	DeltaAbsolute | GammaAbsolute | ThetaAbsolute | EegAbsolute | Horseshoe; // | Artifacts;
    
     int got_data_mask=0;
-	
+    
+    // kt: sound stuff
+    public int tone_on_duration = 4000;
+    public int tone_off_duration = 3000;
+    public  static final int HorseshoeElemeToneMax = 4; // since there 4 sensors here, start with "completed playing all sounds" value
+    public  static final int[] validSensor = {false, true, true, false };
+    public  static final int[] HorseshoeTones =
+    {
+	ToneGenerator.TONE_CDMA_ALERT_NETWORK_LITE,
+	ToneGenerator.TONE_PROP_BEEP2,
+	ToneGenerator.TONE_CDMA_ALERT_INCALL_LITE,   //ToneGenerator.TONE_PROP_BEEP,
+	ToneGenerator.TONE_CDMA_ABBR_INTERCEPT,	
+    };
+    public int horseshoeElemeTone = 0;
+    public int stopSounds = 0;
     /**
      * Connection listener updates UI with new connection status and logs it.
      */
@@ -251,6 +272,10 @@ public class MainActivity extends Activity implements OnClickListener {
 	    if((pkt_timestamp == 0) || ( pkt_timestamp == -1))
 	    {
 		pkt_timestamp = p.getTimestamp();
+		if(pkt_timestamp_ref == 0)
+		{
+		    pkt_timestamp_ref = pkt_timestamp;
+		}
 	    }
 	    long tstamp = Calendar.getInstance().getTimeInMillis();
 	    if(data_time_stamp_ref == 0)
@@ -318,6 +343,46 @@ public class MainActivity extends Activity implements OnClickListener {
 		horseshoeElem[2] = (int)elem3;
 		horseshoeElem[3] = (int)elem4;
 		got_data_mask   |= Horseshoe;
+		//int tone_on_duration = 400;
+		//int tone_off_duration = 400;
+		/*
+		try
+		{
+		if(elem1 > 2)
+		{
+		    ToneGenerator toneG1 = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+		    toneG1.startTone(ToneGenerator.TONE_CDMA_ALERT_NETWORK_LITE, 100);
+		    Thread.sleep(tone_on_duration);
+		    toneG1.stopTone();
+		    Thread.sleep(tone_off_duration);
+		}
+		if(elem2 > 2)
+		{
+		    ToneGenerator toneG2 = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+		    toneG2.startTone(ToneGenerator.TONE_CDMA_ABBR_INTERCEPT, 100);
+		    Thread.sleep(tone_on_duration);
+		    toneG2.stopTone();
+		    Thread.sleep(tone_off_duration);
+		}
+		if(elem3 > 2)
+		{
+		    ToneGenerator toneG3 = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+		    toneG3.startTone(ToneGenerator.TONE_PROP_BEEP, 50);
+		    Thread.sleep(tone_on_duration);
+		    toneG3.stopTone();
+		    Thread.sleep(tone_off_duration);
+		}
+		if(elem4 > 2)
+		{
+		    ToneGenerator toneG4 = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+		    toneG4.startTone(ToneGenerator.TONE_PROP_BEEP2, 50);
+		    Thread.sleep(tone_on_duration);
+		    toneG4.stopTone();
+		    Thread.sleep(tone_off_duration);
+		}
+		} // end try
+		catch(Exception e){}
+		*/
 		/*
 		String strData = tstamp-data_time_stamp_ref + ",,,,," +
 		    Integer.toHexString(helem1).toUpperCase() + "," +
@@ -333,7 +398,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	    if(got_data_mask == AllDataMask )
 	    {
 		long cur_tstamp = tstamp-data_time_stamp_ref;
-		String strData = pkt_timestamp + "," + cur_tstamp + "," +
+		long cur_pkt_tstamp = pkt_timestamp - pkt_timestamp_ref;
+		String strData = cur_pkt_tstamp + "," + cur_tstamp + "," +
 		    eegElem          [0] + "," + eegElem          [3] + "," + eegElem          [1] + "," + eegElem          [2] + "," +
 		    alphaAbsoluteElem[0] + "," + alphaAbsoluteElem[3] + "," + alphaAbsoluteElem[1] + "," + alphaAbsoluteElem[2] + "," +
 		    betaAbsoluteElem [0] + "," + betaAbsoluteElem [3] + "," + betaAbsoluteElem [1] + "," + betaAbsoluteElem [2] + "," +
@@ -398,6 +464,7 @@ public class MainActivity extends Activity implements OnClickListener {
                          TextView fp1 = (TextView) findViewById(R.id.eeg_fp1);
                          TextView fp2 = (TextView) findViewById(R.id.eeg_fp2);
                          TextView tp10 = (TextView) findViewById(R.id.eeg_tp10);
+			 
                          tp9.setText(String.format(
                             "%6.2f", data.get(Eeg.TP9.ordinal())));
                          fp1.setText(String.format(
@@ -484,6 +551,12 @@ public class MainActivity extends Activity implements OnClickListener {
 
         connectionListener = new ConnectionListener(weakActivity);
         dataListener = new DataListener(weakActivity);
+	//kt: temporary sound test
+	Log.w("Muse Headband", "sound test start");
+	stopSounds = 0;
+	playAudioFeedback(1);
+	Log.w("Muse Headband", "sound test done");
+	// end audio test
     }
 
     @Override
@@ -508,6 +581,16 @@ public class MainActivity extends Activity implements OnClickListener {
         // });
         // thread.start();
 
+	//kt: start the audio feedback thread
+        Thread thread = new Thread(new Runnable() {
+             public void run() {
+		 stopSounds = 0;
+                 playAudioFeedback(0);
+             }
+         });
+         thread.start();
+
+	
         File dir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
         fileWriter = MuseFileFactory.getMuseFileWriter(
                      new File(dir, "new_muse_file.muse"));
@@ -534,7 +617,11 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	//String strData = "Time ms,AlphaAbs0,AlphaAbs1,AlphaAbs2,AlphaAbs3, BetaAbs0, BetaAbs1, BetaAbs2, BetaAbs3, DeltaAbs0, DeltaAbs1, DeltaAbs2, DeltaAbs3, GammaAbs0, GammaAbs1, GammaAbs2, GammaAbs3, ThetaAbs0, ThetaAbs1, ThetaAbs2, ThetaAbs3, Horseshoe0, Horseshoe1, Horseshoe2, Horseshoe4 " + "\r\n";
 //Sensor1, Sensor2, Sensor3, Sensor4 " + "\r\n";
-	String strData = "Packet time, Time ms, Eeg TP9, Eeg TP10, Eeg FP1, Eeg FP2, AlphaAbs TP9, AlphaAbs TP10, AlphaAbs FP1, AlphaAbs FP2, BetaAbs TP9, BetaAbs TP10, BetaAbs FP1, BetaAbs FP2, Delta TP9, Delta TP10, Delta FP1, Delta FP2, GammaAbs TP9, GammaAbs TP10, GammaAbs FP1,GammaAbs FP2, ThetaAbs TP9, ThetaAbs TP10, ThetaAbs FP1, ThetaAbs FP2, Horseshoe tp9, Horseshoe TP10, Horseshoe FP1, Horseshoe FP2 " + "\r\n";
+	//old setup: all sensors
+	//String strData = "Packet time,Time ms,Eeg TP9,Eeg TP10,Eeg FP1,Eeg FP2,AlphaAbs TP9,AlphaAbs TP10,AlphaAbs FP1,AlphaAbs FP2,BetaAbs TP9,BetaAbs TP10,BetaAbs FP1,BetaAbs FP2,Delta TP9,Delta TP10,Delta FP1,Delta FP2,GammaAbs TP9,GammaAbs TP10,GammaAbs FP1,GammaAbs FP2,ThetaAbs TP9,ThetaAbs TP10,ThetaAbs FP1,ThetaAbs FP2,Horseshoe tp9,Horseshoe TP10,Horseshoe FP1,Horseshoe FP2 " + "\r\n";
+
+	//new setu[p : only fp1, fp2 eeg sensors
+	String strData = "Packet time,Time ms,Eeg FP1,Eeg FP2,AlphaAbs FP1,AlphaAbs FP2,BetaAbs FP1,BetaAbs FP2,Delta FP1,Delta FP2,GammaAbs FP1,GammaAbs FP2,ThetaAbs FP1,ThetaAbs FP2,,Horseshoe FP1,Horseshoe FP2 " + "\r\n";
 	
 	print_line.printf(strData);
     }
@@ -573,6 +660,8 @@ public class MainActivity extends Activity implements OnClickListener {
                 configureLibrary();
                 fileWriter.open();
                 fileWriter.addAnnotationString(1, "Connect clicked");
+		stopSounds = 0;
+
                 /**
                  * In most cases libmuse native library takes care about
                  * exceptions and recovery mechanism, but native code still
@@ -598,6 +687,7 @@ public class MainActivity extends Activity implements OnClickListener {
                  * muse.unregisterAllListeners();
                  * muse.disconnect(false);
                  */
+		stopSounds = 1;
                 muse.disconnect(true);
                 fileWriter.addAnnotationString(1, "Disconnect clicked");
                 fileWriter.flush();
@@ -618,7 +708,169 @@ public class MainActivity extends Activity implements OnClickListener {
             }
         }
     }
+    // kt:
+    private void f_not_used(ToneGenerator toneGen, int toneIdx)
+    {
+	if(validSensor[toneIdx] == false)
+	{
+	    return;
+	}
+	
+	ToneGenerator toneG = null;
+	if(toneGen == null)
+	    toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
+	else
+	    toneG = toneGen;
+	
+	toneG.startTone( HorseshoeTones[toneIdx]);
+	try
+	{
+	    Thread.sleep(tone_on_duration/8);
+	}
+	catch(Exception e) {}
+	toneG.stopTone();
+	try
+	{
+	    Thread.sleep(tone_off_duration/2);
+	}
+	catch(Exception e) {}
+    }
+    
+    private void playAudioFeedback(int at_mode) {
+	int tone;
+	int play_tone = 0;
+	int i = 0;
+	int k;
+	// create generator once
+	//ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
 
+	// tone test
+	int j;
+	if(at_mode == 1)
+	{
+	    for(j=0; j<HorseshoeElemeToneMax; j++)
+	    {
+		for(k=0; k<2; k++) //play twice
+	        {
+		    musePlayTone(null, j);
+		}
+	    } // horseshoe for loop
+	    return; // test done
+	}
+	// end test
+	
+
+	// normal operation
+	Log.i("Muse Headband kt:", "Starting ToneGenerator");
+	ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 50);
+
+	// infinite - user can connect/disconnect multiple times without exiting the app
+	while(true)
+	{
+	    if(stopSounds != 0)
+	    {
+		toneG.stopTone();
+		toneG = null;
+		Log.i("Muse Headband kt:", "Stopping ToneGenerator");
+		//stopSounds = 0;
+		// put thread to sleep
+		try
+		{
+		    Thread.sleep(1000); //let CPU rest
+		}
+		catch(Exception e) {}
+		continue;
+	    }
+	    
+	    if(horseshoeElemeTone != HorseshoeElemeToneMax)
+	    {
+		i = horseshoeElemeTone;
+	    }
+	    // do not play souns if horseshoe is less than 3
+	    // look for horseshoe less than 3
+	    while(horseshoeElem[i] < 3) 
+	    {
+		i++;
+		if(i == HorseshoeElemeToneMax)
+		    break;	
+	    }
+	    if(i != HorseshoeElemeToneMax) // if none bad, no sound
+	    {
+		// we had bad sensor, play its sound
+		musePlayTone(toneG, i);
+	    }
+	    // put thread to sleep
+	    try
+	    {
+		Thread.sleep(1000); //let CPU rest
+	    }
+	    catch(Exception e) {}
+	} // infinite lop
+    }
+
+   private void playAudioFeedback_apk(int at_mode)
+  {
+    int i = 0;
+    if (at_mode == 1)
+    {
+      at_mode = 0;
+      while (at_mode < 4)
+      {
+        i = 0;
+        while (i < 2)
+        {
+          musePlayTone(null, at_mode);
+          i += 1;
+        }
+        at_mode += 1;
+      }
+    }
+    Log.i("Muse Headband kt:", "Starting ToneGenerator");
+    ToneGenerator localToneGenerator = new ToneGenerator(4, 100);
+    at_mode = i;
+    for (;;)
+    {
+      if (this.stopSounds != 0)
+      {
+        localToneGenerator.stopTone();
+        localToneGenerator = null;
+        Log.i("Muse Headband kt:", "Stopping ToneGenerator");
+        try
+        {
+          Thread.sleep(1000L);
+        }
+        catch (Exception localException1) {}
+      }
+      else
+      {
+        if (this.horseshoeElemeTone != 4) {
+          at_mode = this.horseshoeElemeTone;
+        }
+        do
+        {
+          i = at_mode;
+          if (this.horseshoeElem[at_mode] >= 3) {
+            break;
+          }
+          i = at_mode + 1;
+          at_mode = i;
+        } while (i != 4);
+        if (i != 4) {
+          musePlayTone(localToneGenerator, i);
+        }
+        try
+        {
+          Thread.sleep(1000L);
+          at_mode = i;
+        }
+        catch (Exception localException2)
+        {
+          at_mode = i;
+        }
+      }
+    }
+  }
+   
     /*
      * Simple example of getting data from the "*.muse" file
      */
@@ -715,5 +967,102 @@ public class MainActivity extends Activity implements OnClickListener {
     }
 
     // kt: new stuff
- 
+   
+  private void musePlayTone(ToneGenerator paramToneGenerator, int toneIdx)
+  {
+      if(validSensor[toneIdx] == false)
+      {
+	  return;
+      }
+
+    if (paramToneGenerator == null) {
+	paramToneGenerator = new ToneGenerator(4, 100);
+    }
+    for (;;)
+    {
+      paramToneGenerator.startTone(HorseshoeTones[toneIdx]);
+      try
+      {
+        Thread.sleep(this.tone_on_duration / 8);
+        paramToneGenerator.stopTone();
+        try
+        {
+          Thread.sleep(this.tone_off_duration / 2);
+          return;
+        }
+        catch (Exception e)
+	{
+	    Log.e("Muse Headband exception", e.toString());
+	}
+      }
+      catch (Exception e)
+      {
+	  Log.e("Muse Headband exception", e.toString());
+      }
+    }
+  }
+    
+    private void playAudioFeedback_apk(int paramInt)
+  {
+    int i = 0;
+    if (paramInt == 1)
+    {
+      paramInt = 0;
+      while (paramInt < 4)
+      {
+        i = 0;
+        while (i < 2)
+        {
+          musePlayTone(null, paramInt);
+          i += 1;
+        }
+        paramInt += 1;
+      }
+    }
+    Log.i("Muse Headband kt:", "Starting ToneGenerator");
+    ToneGenerator localToneGenerator = new ToneGenerator(4, 100);
+    paramInt = i;
+    for (;;)
+    {
+      if (this.stopSounds != 0)
+      {
+        localToneGenerator.stopTone();
+        localToneGenerator = null;
+        Log.i("Muse Headband kt:", "Stopping ToneGenerator");
+        try
+        {
+          Thread.sleep(1000L);
+        }
+        catch (Exception localException1) {}
+      }
+      else
+      {
+        if (this.horseshoeElemeTone != 4) {
+          paramInt = this.horseshoeElemeTone;
+        }
+        do
+        {
+          i = paramInt;
+          if (this.horseshoeElem[paramInt] >= 3) {
+            break;
+          }
+          i = paramInt + 1;
+          paramInt = i;
+        } while (i != 4);
+        if (i != 4) {
+          musePlayTone(localToneGenerator, i);
+        }
+        try
+        {
+          Thread.sleep(1000L);
+          paramInt = i;
+        }
+        catch (Exception localException2)
+        {
+          paramInt = i;
+        }
+      }
+    }
+  }
+
 }
