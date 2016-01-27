@@ -55,20 +55,21 @@ import com.interaxon.libmuse.MusePreset;
 import com.interaxon.libmuse.MuseVersion;
 
 /*kt: new stuff
-	ALPHA_ABSOLUTE);
-	ALPHA_SCORE);
-        BETA_ABSOLUTE);
-	BETA_RELATIVE);
-	BETA_SCORE);
-        DELTA_ABSOLUTE);
-	DELTA_RELATIVE);
-	DELTA_SCORE);
-        GAMMA_ABSOLUTE);
-        GAMMA_RELATIVE);
-        GAMMA_SCORE);
-        THETA_ABSOLUTE);
-        THETA_RELATIVE);
-        THETA_SCORE);
+  HORSESHOE
+  ALPHA_ABSOLUTE);
+  ALPHA_SCORE);
+  BETA_ABSOLUTE);
+  BETA_RELATIVE);
+  BETA_SCORE);
+  DELTA_ABSOLUTE);
+  DELTA_RELATIVE);
+  DELTA_SCORE);
+  GAMMA_ABSOLUTE);
+  GAMMA_RELATIVE);
+  GAMMA_SCORE);
+  THETA_ABSOLUTE);
+  THETA_RELATIVE);
+  THETA_SCORE);
 */
 
 
@@ -101,22 +102,28 @@ public class MainActivity extends Activity implements OnClickListener {
     int data_set_cnt = 0;
     long data_time_stamp = 0;
     long data_time_stamp_ref = 0;
+    long pkt_timestamp  = 0;
+    double[] eegElem = {0,0,0,0};
     double[] alphaAbsoluteElem = {0,0,0,0};
     double[] betaAbsoluteElem = {0,0,0,0};
     double[] deltaAbsoluteElem = {0,0,0,0};
     double[] gammaAbsoluteElem = {0,0,0,0};
     double[] thetaAbsoluteElem = {0,0,0,0};
     int[]    horseshoeElem     = {0,0,0,0};
-   
+    //int artifactsElem = 0;
+    
     // bit masks for packet types:
     public static final int AlphaAbsolute=1;
     public static final int BetaAbsolute  = 2;
     public static final int DeltaAbsolute = 4;
     public static final int GammaAbsolute = 8;
     public static final int ThetaAbsolute = 0x10;
-    public static final int Horseshoe     = 0x20;
+    public static final int EegAbsolute   = 0x20;
+    public static final int Horseshoe     = 0x80;
+    //public static final int Artifacts    = 0x40;
+   
     public static final int AllDataMask = AlphaAbsolute | BetaAbsolute |
-	DeltaAbsolute | GammaAbsolute | ThetaAbsolute | Horseshoe;
+	DeltaAbsolute | GammaAbsolute | ThetaAbsolute | EegAbsolute | Horseshoe; // | Artifacts;
    
     int got_data_mask=0;
 	
@@ -191,9 +198,9 @@ public class MainActivity extends Activity implements OnClickListener {
         @Override
         public void receiveMuseDataPacket(MuseDataPacket p) {
             switch (p.getPacketType()) {
-	    case EEG:
-		updateEeg(p.getValues());
-		break;
+		//	    case EEG:
+		//		updateEeg(p.getValues());
+		//		break;
 	    case ACCELEROMETER:
 		updateAccelerometer(p.getValues());
 		break;
@@ -207,7 +214,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		if (fileWriter.getBufferedMessagesSize() > 8096)
 		    fileWriter.flush();
 		break;
-	    case HORSESHOE:	
+	    case HORSESHOE:
+	    case EEG:
 	    case ALPHA_ABSOLUTE:
 		//case ALPHA_SCORE:
 	    case BETA_ABSOLUTE:
@@ -240,13 +248,23 @@ public class MainActivity extends Activity implements OnClickListener {
 	    
 	    //final ArrayList<Double> data = p.getValues();
 	    boolean got_data = false;
-	    long muse_tstamp = p.getTimestamp();
+	    if((pkt_timestamp == 0) || ( pkt_timestamp == -1))
+	    {
+		pkt_timestamp = p.getTimestamp();
+	    }
 	    long tstamp = Calendar.getInstance().getTimeInMillis();
 	    if(data_time_stamp_ref == 0)
 		data_time_stamp_ref = tstamp; //save start time
 	    
 	    switch (p.getPacketType())
 	    {
+	    case EEG:
+		eegElem[0] = data.get(Eeg.TP9.ordinal())/1000; // divide by 1000 to scale with alpha absolute, beta etc. signals
+		eegElem[1] = data.get(Eeg.FP1.ordinal())/1000;
+		eegElem[2] = data.get(Eeg.FP2.ordinal())/1000;
+		eegElem[3] = data.get(Eeg.TP10.ordinal())/1000;
+		got_data_mask |= EegAbsolute;
+		break;
 	    case ALPHA_ABSOLUTE:
 		alphaAbsoluteElem[0] = data.get(Eeg.TP9.ordinal());
 		alphaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
@@ -268,6 +286,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		deltaAbsoluteElem[1] = data.get(Eeg.FP1.ordinal());
 		deltaAbsoluteElem[2] = data.get(Eeg.FP2.ordinal());
 		deltaAbsoluteElem[3] = data.get(Eeg.TP10.ordinal());
+		
 		got_data_mask |= DeltaAbsolute;
 		break;
 		
@@ -287,7 +306,8 @@ public class MainActivity extends Activity implements OnClickListener {
 		break;
 		
 	    case HORSESHOE:
-		int helem1 = 0, helem2 = 0, helem3 = 0, helem4 = 0;
+		//int helem1 = 0, helem2 = 0, helem3 = 0, helem4 = 0;
+		updateHorseshoe(data);
 		elem1 = data.get(Eeg.TP9.ordinal());
 		elem2 = data.get(Eeg.FP1.ordinal());
 		elem3 = data.get(Eeg.FP2.ordinal());
@@ -307,18 +327,22 @@ public class MainActivity extends Activity implements OnClickListener {
 		print_line.printf(strData);
 		*/
 		break;
+
 	    }
 	    // write/append data to file	    
 	    if(got_data_mask == AllDataMask )
 	    {
-		String strData = tstamp-data_time_stamp_ref + "," +
-		    alphaAbsoluteElem[0] + "," + alphaAbsoluteElem[1] + "," + alphaAbsoluteElem[2] + "," + alphaAbsoluteElem[3] + "," +
-		    betaAbsoluteElem[0]  + "," + betaAbsoluteElem[1]  + "," + betaAbsoluteElem[2]  + "," + betaAbsoluteElem[3]  + "," +
-		    deltaAbsoluteElem[0] + "," + deltaAbsoluteElem[1] + "," + deltaAbsoluteElem[2] + "," + deltaAbsoluteElem[3] + "," +
-		    gammaAbsoluteElem[0] + "," + gammaAbsoluteElem[1] + "," + gammaAbsoluteElem[2] + "," + gammaAbsoluteElem[3] + "," +
-		    thetaAbsoluteElem[0] + "," + thetaAbsoluteElem[1] + "," + thetaAbsoluteElem[2] + "," + thetaAbsoluteElem[3] + "," +
-		    horseshoeElem[0]     + "," + horseshoeElem[1]     + "," + horseshoeElem[2]     + "," + horseshoeElem[3] +
-		    "\r\n";
+		long cur_tstamp = tstamp-data_time_stamp_ref;
+		String strData = pkt_timestamp + "," + cur_tstamp + "," +
+		    eegElem          [0] + "," + eegElem          [3] + "," + eegElem          [1] + "," + eegElem          [2] + "," +
+		    alphaAbsoluteElem[0] + "," + alphaAbsoluteElem[3] + "," + alphaAbsoluteElem[1] + "," + alphaAbsoluteElem[2] + "," +
+		    betaAbsoluteElem [0] + "," + betaAbsoluteElem [3] + "," + betaAbsoluteElem [1] + "," + betaAbsoluteElem [2] + "," +
+		    deltaAbsoluteElem[0] + "," + deltaAbsoluteElem[3] + "," + deltaAbsoluteElem[1] + "," + deltaAbsoluteElem[2] + "," +
+		    gammaAbsoluteElem[0] + "," + gammaAbsoluteElem[3] + "," + gammaAbsoluteElem[1] + "," + gammaAbsoluteElem[2] + "," +
+		    thetaAbsoluteElem[0] + "," + thetaAbsoluteElem[3] + "," + thetaAbsoluteElem[1] + "," + thetaAbsoluteElem[2] + "," +
+		    horseshoeElem    [0] + "," + horseshoeElem    [3] + "," + horseshoeElem    [1] + "," + horseshoeElem    [2] + "\r\n";
+		
+		pkt_timestamp = 0; // for the next time
 		waive_pkt_cnt++; //for debug
 		//if(waive_pkt_cnt == 5) //for debug
 		//    waive_pkt_cnt = 0;
@@ -330,7 +354,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		    //if (writeData.getBufferedMessagesSize() > 8096)
 		    if(data_set_cnt == 5) // tune the final number
 		    {
-			Log.i("Muse packet timestamp=",  String.valueOf(muse_tstamp));
+			//Log.i("Muse packet timestamp=",  String.valueOf(muse_tstamp));
 			data_set_cnt = 0;
 			try {
 			    writeData.flush();
@@ -404,6 +428,29 @@ public class MainActivity extends Activity implements OnClickListener {
                          elem3.setText(String.format(
                             "%6.2f", data.get(Eeg.FP2.ordinal())));
                          elem4.setText(String.format(
+                            "%6.2f", data.get(Eeg.TP10.ordinal())));
+                    }
+                });
+            }
+        }
+
+       private void updateHorseshoe(final ArrayList<Double> data) {
+            Activity activity = activityRef.get();
+            if (activity != null) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                         TextView tp9 = (TextView) findViewById(R.id.eeg_tp9);
+                         TextView fp1 = (TextView) findViewById(R.id.eeg_fp1);
+                         TextView fp2 = (TextView) findViewById(R.id.eeg_fp2);
+                         TextView tp10 = (TextView) findViewById(R.id.eeg_tp10);
+                         tp9.setText(String.format(
+                            "%6.2f", data.get(Eeg.TP9.ordinal())));
+                         fp1.setText(String.format(
+                            "%6.2f", data.get(Eeg.FP1.ordinal())));
+                         fp2.setText(String.format(
+                            "%6.2f", data.get(Eeg.FP2.ordinal())));
+                         tp10.setText(String.format(
                             "%6.2f", data.get(Eeg.TP10.ordinal())));
                     }
                 });
@@ -484,8 +531,11 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 	print_line = new PrintWriter( writeData );
 	//fileWriterData.addAnnotationString(1, "alpha, beta, delta, gamma, theta,");
-	String strData = "Time ms,AlphaAbs0,AlphaAbs1,AlphaAbs2,AlphaAbs3, BetaAbs0, BetaAbs1, BetaAbs2, BetaAbs3, DeltaAbs0, DeltaAbs1, DeltaAbs2, DeltaAbs3, GammaAbs0, GammaAbs1, GammaAbs2, GammaAbs3, ThetaAbs0, ThetaAbs1, ThetaAbs2, ThetaAbs3, Horseshoe0, Horseshoe1, Horseshoe2, Horseshoe4 " + "\r\n";
+
+	//String strData = "Time ms,AlphaAbs0,AlphaAbs1,AlphaAbs2,AlphaAbs3, BetaAbs0, BetaAbs1, BetaAbs2, BetaAbs3, DeltaAbs0, DeltaAbs1, DeltaAbs2, DeltaAbs3, GammaAbs0, GammaAbs1, GammaAbs2, GammaAbs3, ThetaAbs0, ThetaAbs1, ThetaAbs2, ThetaAbs3, Horseshoe0, Horseshoe1, Horseshoe2, Horseshoe4 " + "\r\n";
 //Sensor1, Sensor2, Sensor3, Sensor4 " + "\r\n";
+	String strData = "Packet time, Time ms, Eeg TP9, Eeg TP10, Eeg FP1, Eeg FP2, AlphaAbs TP9, AlphaAbs TP10, AlphaAbs FP1, AlphaAbs FP2, BetaAbs TP9, BetaAbs TP10, BetaAbs FP1, BetaAbs FP2, Delta TP9, Delta TP10, Delta FP1, Delta FP2, GammaAbs TP9, GammaAbs TP10, GammaAbs FP1,GammaAbs FP2, ThetaAbs TP9, ThetaAbs TP10, ThetaAbs FP1, ThetaAbs FP2, Horseshoe tp9, Horseshoe TP10, Horseshoe FP1, Horseshoe FP2 " + "\r\n";
+	
 	print_line.printf(strData);
     }
 
