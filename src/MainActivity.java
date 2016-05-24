@@ -138,7 +138,7 @@ public class MainActivity extends Activity implements OnClickListener {
     public int tone_on_duration = 4000;
     public int tone_off_duration = 3000;
     public  static final int HorseshoeElemeToneMax = 4; // since there 4 sensors here, start with "completed playing all sounds" value
-    public  static final int[] validSensor = {false, true, true, false };
+    public  static final boolean[] validSensor = {false, true, true, false };
     public  static final int[] HorseshoeTones =
     {
 	ToneGenerator.TONE_CDMA_ALERT_NETWORK_LITE,
@@ -507,18 +507,14 @@ public class MainActivity extends Activity implements OnClickListener {
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                         TextView tp9 = (TextView) findViewById(R.id.eeg_tp9);
+			//TextView tp9 = (TextView) findViewById(R.id.eeg_tp9);
                          TextView fp1 = (TextView) findViewById(R.id.eeg_fp1);
                          TextView fp2 = (TextView) findViewById(R.id.eeg_fp2);
-                         TextView tp10 = (TextView) findViewById(R.id.eeg_tp10);
-                         tp9.setText(String.format(
-                            "%6.2f", data.get(Eeg.TP9.ordinal())));
-                         fp1.setText(String.format(
-                            "%6.2f", data.get(Eeg.FP1.ordinal())));
-                         fp2.setText(String.format(
-                            "%6.2f", data.get(Eeg.FP2.ordinal())));
-                         tp10.setText(String.format(
-                            "%6.2f", data.get(Eeg.TP10.ordinal())));
+                         //TextView tp10 = (TextView) findViewById(R.id.eeg_tp10);
+                         //tp9.setText(String.format("%6.2f", data.get(Eeg.TP9.ordinal())));
+                         fp1.setText(String.format("%6.2f", data.get(Eeg.FP1.ordinal())));
+                         fp2.setText(String.format("%6.2f", data.get(Eeg.FP2.ordinal())));
+                         //tp10.setText(String.format("%6.2f", data.get(Eeg.TP10.ordinal())));
                     }
                 });
             }
@@ -786,7 +782,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	    {
 		i = horseshoeElemeTone;
 	    }
-	    // do not play souns if horseshoe is less than 3
+	    // do not play sounds if horseshoe is less than 3
 	    // look for horseshoe less than 3
 	    while(horseshoeElem[i] < 3) 
 	    {
@@ -808,7 +804,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	} // infinite lop
     }
 
-   private void playAudioFeedback_apk(int at_mode)
+   private void playAudioFeedback_apk1(int at_mode)
   {
     int i = 0;
     if (at_mode == 1)
@@ -1002,7 +998,7 @@ public class MainActivity extends Activity implements OnClickListener {
     }
   }
     
-    private void playAudioFeedback_apk(int paramInt)
+    private void playAudioFeedback_apk2(int paramInt)
   {
     int i = 0;
     if (paramInt == 1)
