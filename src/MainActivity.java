@@ -337,12 +337,18 @@ public class MainActivity extends Activity implements OnClickListener {
 		elem2 = data.get(Eeg.FP1.ordinal());
 		elem3 = data.get(Eeg.FP2.ordinal());
 		elem4 = data.get(Eeg.TP10.ordinal());
-	
-		horseshoeElem[0] = (int)elem1;
-		horseshoeElem[1] = (int)elem2;
-		horseshoeElem[2] = (int)elem3;
-		horseshoeElem[3] = (int)elem4;
+
+		if(validSensor[0] == true)
+		    horseshoeElem[0] = (int)elem1;
+		if(validSensor[1] == true)
+		    horseshoeElem[1] = (int)elem2;
+		if(validSensor[2] == true)
+		    horseshoeElem[2] = (int)elem3;
+		if(validSensor[3] == true)
+		    horseshoeElem[3] = (int)elem4;
+		
 		got_data_mask   |= Horseshoe;
+		Log.i("kt: hrs data ", Integer.toString(waive_pkt_cnt));
 		//int tone_on_duration = 400;
 		//int tone_off_duration = 400;
 		/*
@@ -596,7 +602,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	boolean append_to_file = false;
 	//GettingCurrentDate gcd = new GettingCurrentDate();
-	DateFormat df = new SimpleDateFormat("dd-MM-yy_HH:mm:ss");
+	//DateFormat df = new SimpleDateFormat("dd-MM-yy_HH:mm:ss");
+	DateFormat df = new SimpleDateFormat("yy-MM-dd_HH:mm:ss");
 	Date dateobj = new Date();
 	//System.out.println(df.format(dateobj));
 	String ldt = df.format( dateobj);
@@ -758,7 +765,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	// normal operation
 	Log.i("Muse Headband kt:", "Starting ToneGenerator");
-	ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 50);
+	ToneGenerator toneG = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
 
 	// infinite - user can connect/disconnect multiple times without exiting the app
 	while(true)
@@ -790,10 +797,16 @@ public class MainActivity extends Activity implements OnClickListener {
 		if(i == HorseshoeElemeToneMax)
 		    break;	
 	    }
+	    // we are here either becasue we scanned to the end of the array
+	    // or we found a bad sensor
 	    if(i != HorseshoeElemeToneMax) // if none bad, no sound
 	    {
 		// we had bad sensor, play its sound
 		musePlayTone(toneG, i);
+	    }
+	    else
+	    {
+		horseshoeElemeTone = 0; //restart scanning from the start of array
 	    }
 	    // put thread to sleep
 	    try
@@ -997,68 +1010,4 @@ public class MainActivity extends Activity implements OnClickListener {
       }
     }
   }
-    
-    private void playAudioFeedback_apk2(int paramInt)
-  {
-    int i = 0;
-    if (paramInt == 1)
-    {
-      paramInt = 0;
-      while (paramInt < 4)
-      {
-        i = 0;
-        while (i < 2)
-        {
-          musePlayTone(null, paramInt);
-          i += 1;
-        }
-        paramInt += 1;
-      }
-    }
-    Log.i("Muse Headband kt:", "Starting ToneGenerator");
-    ToneGenerator localToneGenerator = new ToneGenerator(4, 100);
-    paramInt = i;
-    for (;;)
-    {
-      if (this.stopSounds != 0)
-      {
-        localToneGenerator.stopTone();
-        localToneGenerator = null;
-        Log.i("Muse Headband kt:", "Stopping ToneGenerator");
-        try
-        {
-          Thread.sleep(1000L);
-        }
-        catch (Exception localException1) {}
-      }
-      else
-      {
-        if (this.horseshoeElemeTone != 4) {
-          paramInt = this.horseshoeElemeTone;
-        }
-        do
-        {
-          i = paramInt;
-          if (this.horseshoeElem[paramInt] >= 3) {
-            break;
-          }
-          i = paramInt + 1;
-          paramInt = i;
-        } while (i != 4);
-        if (i != 4) {
-          musePlayTone(localToneGenerator, i);
-        }
-        try
-        {
-          Thread.sleep(1000L);
-          paramInt = i;
-        }
-        catch (Exception localException2)
-        {
-          paramInt = i;
-        }
-      }
-    }
-  }
-
 }
