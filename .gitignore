@@ -41,3 +41,33 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Android Studio
+.gradle/
+
+# Local configuration file (sdk path, etc)
+# src/Android/SleepAnalyzer/local.properties
+local.properties
+
+# src/Android/SleepAnalyzer/.idea/workspace.xml
+# **/.idea/workspace.xml
+# src/Android/SleepAnalyzer/.idea/libraries
+# **/.idea/libraries/
+.idea
+
+# generated build directories
+# this covers all directories named build
+build/
+
+# Want the apk so QA can download and test without building
+!*.apk
+
+# Android Studio captures folder
+captures/
+
+# Explicit files from Interaxon we do not want to distribute
+# src/Android/SleepAnalyzer/app/libs/libmuse_android.jar
+libmuse_android.jar
+# src/Android/SleepAnalyzer/app/src/main/jniLibs/armeabi-v7a/libmuse_android.so
+libmuse_android.so
+
