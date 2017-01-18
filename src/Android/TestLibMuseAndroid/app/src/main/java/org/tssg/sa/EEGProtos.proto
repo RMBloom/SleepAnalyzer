@@ -1,0 +1,31 @@
+syntax = "proto3";
+package org.tssg.sa;
+
+//option java_package = “org.tssg.sa”;
+option java_outer_classname = "EEGProtos";
+
+
+message EEGData {
+
+    enum DataType {
+        EEG1 = 0;
+        EEG2 = 1;
+        EEG3 = 2;
+        EEG4 = 3;
+        AUX_LEFT = 4;
+        AUX_RIGHT = 5;
+        ACCELX = 6;
+        ACCELY = 7;
+        ACCELZ = 8;
+    }
+
+    string email = 1;
+    message Timestamp{} Timestamp timestamp = 2;
+    repeated DataType type = 3 ;
+    repeated float value = 4;
+}
+
+message EEGDataStream {
+    repeated EEGData data = 1;
+}
+
