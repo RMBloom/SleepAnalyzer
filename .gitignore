@@ -49,6 +49,9 @@ Temporary Items
 # src/Android/SleepAnalyzer/local.properties
 local.properties
 
+# project files from IDE
+*.iml
+
 # src/Android/SleepAnalyzer/.idea/workspace.xml
 # **/.idea/workspace.xml
 # src/Android/SleepAnalyzer/.idea/libraries
