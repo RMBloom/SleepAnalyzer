@@ -80,7 +80,7 @@ public class MainActivity extends Activity implements OnClickListener {
     /**
      * Tag used for logging purposes.
      */
-    private final String TAG = "TestLibMuseAndroid";
+    private final String TAG = "SleepAnalyzer";
 
     /**
      * The MuseManager is how you detect Muse headbands and receive notifications
