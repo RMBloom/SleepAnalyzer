@@ -1,6 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.choosemuse.example.libmuse.MainActivity" >
+    tools:context="com.tssg.sleepanalyzer.MainActivity" >
 
     <item
         android:id="@+id/action_settings"

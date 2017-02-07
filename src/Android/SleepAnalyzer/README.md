@@ -24,7 +24,7 @@ Once the SDK is installed you will need two library files:
 
 Copy libmuse-android.jar to the SleepAnalyzer/app/libs folder
 
-Copy libmuse\_android.so to the SleepAnalyzerapp/src/main/jniLibs/armeabi-v7a/ folder.
+Copy libmuse\_android.so to the SleepAnalyzer/app/src/main/jniLibs/armeabi-v7a/ folder.
 
 At this point you should be able to build the application.
 
