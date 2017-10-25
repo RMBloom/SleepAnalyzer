@@ -325,8 +325,16 @@ public class MainActivity extends Activity implements OnClickListener {
 		// Get the external storage state
 		String state = Environment.getExternalStorageState();
 
-		// Get the external storage "/Download" directory path
-		File fileDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+		// Storage Directory
+		File fileDir = null;
+
+		// External vs. Local storage
+		if (Environment.MEDIA_MOUNTED.equals(state))
+			// Get the external storage "/Download" directory path
+			fileDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+		else
+			// Get the local storage directory path
+			fileDir = Environment.getDataDirectory();
 
 		// Construct the test file path
 		final File sourceFile = new File(fileDir, "test_muse_file.muse");
@@ -344,8 +352,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
 			TextView statusText = (TextView) findViewById(R.id.con_status);
 			statusText.setText("Reading from test file — "
-					+ sourceFileName +
-					"\nMuse headband connections are disabled!\n");
+								+ sourceFileName +
+								"\nMuse headband connections are disabled!\n");
 			statusText.setTypeface(null, Typeface.BOLD_ITALIC);
 
 			// Disable the buttons and spinner when reading from a file
@@ -380,12 +388,17 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 		// RB
 
-		// kt: initial audio test
-		Log.d("Muse Headband", "sound test start");
-		stopSounds = 0;
-		playAudioFeedback(1);
-		Log.d("Muse Headband", "sound test done");
-		// kt: end audio test
+		// Check for APIs 17 & 18
+		// TODO - API 17 (4.2.2) & 18 (4.3.1) have faulty Tone Generator support
+		if (!android.os.Build.VERSION.RELEASE.startsWith("4.2.") &&
+			!android.os.Build.VERSION.RELEASE.startsWith("4.3.")) {
+			// kt: initial audio test
+			Log.d("Muse Headband", "sound test start");
+			stopSounds = 0;
+			playAudioFeedback(1);
+			Log.d("Muse Headband", "sound test done");
+			// kt: end audio test
+		}
 
 	}    // end - onCreate()
 
