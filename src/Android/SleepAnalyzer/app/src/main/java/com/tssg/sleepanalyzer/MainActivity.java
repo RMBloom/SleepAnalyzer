@@ -374,24 +374,36 @@ public class MainActivity extends Activity implements OnClickListener {
 		} else {
 			Log.w(method, "test file doesn't exist");
 
-			//kt:
-			// start the audio feedback thread
-			Thread audioFeedbackThread = new Thread(new Runnable() {
-				public void run() {
-					stopSounds = 0;
-					playAudioFeedback(0);
-				}
-			});
-			audioFeedbackThread.setName("Audio Feedback");
-			audioFeedbackThread.start();
-			// kt:
+			// TODO
+			// Check for faulty API
+			//	API 25 (7.1.1)
+			// has problem with this audioFeedbackThread
+			if (!android.os.Build.VERSION.RELEASE.startsWith("7.1.")) {
+				//kt:
+				// start the audio feedback thread
+				Thread audioFeedbackThread = new Thread(new Runnable() {
+					public void run() {
+						stopSounds = 0;
+						playAudioFeedback(0);
+					}
+				});
+				audioFeedbackThread.setName("Audio Feedback");
+				audioFeedbackThread.start();
+				// kt:
+			}
+
 		}
 		// RB
 
-		// Check for APIs 17 & 18
-		// TODO - API 17 (4.2.2) & 18 (4.3.1) have faulty Tone Generator support
+		// TODO
+		// Check for faulty APIs
+		//	API 17 (4.2.2) &
+		//	API 18 (4.3.1) &
+		//	API 25 (7.1.1)
+		//	have faulty Tone Generator support
 		if (!android.os.Build.VERSION.RELEASE.startsWith("4.2.") &&
-			!android.os.Build.VERSION.RELEASE.startsWith("4.3.")) {
+			!android.os.Build.VERSION.RELEASE.startsWith("4.3.") &&
+			!android.os.Build.VERSION.RELEASE.startsWith("7.1.")) {
 			// kt: initial audio test
 			Log.d("Muse Headband", "sound test start");
 			stopSounds = 0;
