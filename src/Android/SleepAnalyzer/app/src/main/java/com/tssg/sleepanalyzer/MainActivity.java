@@ -1,16 +1,14 @@
-/**
+/*
  * Example of using libmuse library on android.
  * Interaxon, Inc. 2016
  */
 
 package com.tssg.sleepanalyzer;
 
-// kt:
+
 
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
-// kt:
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -22,6 +20,7 @@ import java.util.Calendar;
 
 import java.io.File;
 
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.choosemuse.example.libmuse.R;
@@ -54,7 +53,6 @@ import android.app.AlertDialog;
 import android.graphics.Typeface;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
@@ -66,7 +64,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.bluetooth.BluetoothAdapter;
 
 
 import android.support.v4.app.ActivityCompat;
@@ -75,6 +72,8 @@ import android.support.v4.content.ContextCompat;
 //kt:
 import android.media.ToneGenerator;
 import android.media.AudioManager;
+
+import static java.util.Locale.*;
 // kt:
 
 // kt:
@@ -95,7 +94,6 @@ import android.media.AudioManager;
   THETA_RELATIVE);
   THETA_SCORE);
 */
-// does not exist : import java.awt.Toolkit;
 // kt:
 
 
@@ -129,7 +127,6 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	// smf
 	boolean fromFile = false;
-
 
 	/**
 	 * The MuseManager is how you detect Muse headbands and receive notifications
@@ -224,7 +221,6 @@ public class MainActivity extends Activity implements OnClickListener {
 	// kt:
 	int waive_pkt_cnt = 0;
 	int data_set_cnt = 0;
-	long data_time_stamp = 0;
 	long data_time_stamp_ref = 0;
 	long pkt_timestamp = 0;
 	long pkt_timestamp_ref = 0;
@@ -235,8 +231,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	double[] deltaAbsoluteElem = {0, 0, 0, 0};
 	double[] gammaAbsoluteElem = {0, 0, 0, 0};
 	double[] thetaAbsoluteElem = {0, 0, 0, 0};
+
 	public int[] horseshoeElem = {0, 0, 0, 0};
-	//int artifactsElem = 0;
 
 	// bit masks for packet types:
 	public static final int AlphaAbsolute = 1;
@@ -246,7 +242,6 @@ public class MainActivity extends Activity implements OnClickListener {
 	public static final int ThetaAbsolute = 0x10;
 	public static final int EegAbsolute = 0x20;
 	public static final int Horseshoe = 0x80;
-	//public static final int Artifacts    = 0x40;
 
 	public static final int AllDataMask = AlphaAbsolute |
 			BetaAbsolute |
@@ -255,7 +250,6 @@ public class MainActivity extends Activity implements OnClickListener {
 			ThetaAbsolute |
 			EegAbsolute |
 			Horseshoe;
-	// | Artifacts;
 
 	int got_data_mask = 0;
 
@@ -275,6 +269,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	public int stopSounds = 0;
 	// kt:
 
+	// smf:
+	public static final Locale locale = ENGLISH;
 
 	//--------------------------------------
 	// Lifecycle / Connection code
@@ -295,7 +291,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		Log.d(TAG, "LibMuse version=" + LibmuseVersion.instance().getString());
 
-		WeakReference<MainActivity> weakActivity = new WeakReference<MainActivity>(this);
+		WeakReference<MainActivity> weakActivity = new WeakReference<>(this);
 
 		// Register a listener to receive connection state changes.
 		connectionListener = new ConnectionListener(weakActivity);
@@ -326,7 +322,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		String state = Environment.getExternalStorageState();
 
 		// Storage Directory
-		File fileDir = null;
+		File fileDir;
 
 		// External vs. Local storage
 		if (Environment.MEDIA_MOUNTED.equals(state))
@@ -374,7 +370,6 @@ public class MainActivity extends Activity implements OnClickListener {
 		} else {
 			Log.w(method, "test file doesn't exist");
 
-			// TODO
 			// Check for faulty API
 			//	API 25 (7.1.1)
 			// has problem with this audioFeedbackThread
@@ -395,7 +390,6 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 		// RB
 
-		// TODO
 		// Check for faulty APIs
 		//	API 17 (4.2.2) &
 		//	API 18 (4.3.1) &
@@ -421,9 +415,9 @@ public class MainActivity extends Activity implements OnClickListener {
 		manager.stopListening();
 	}
 
-	public boolean isBluetoothEnabled() {
-		return BluetoothAdapter.getDefaultAdapter().isEnabled();
-	}
+//	public boolean isBluetoothEnabled() {
+//		return BluetoothAdapter.getDefaultAdapter().isEnabled();
+//	}
 
 	@Override
 	public void onClick(View v) {
@@ -619,9 +613,9 @@ public class MainActivity extends Activity implements OnClickListener {
 	 * a single listener for all packet types as we have done here.
 	 *
 	 * @param p    The data packet containing the data from the headband (eg. EEG data)
-	 * @param muse The headband that sent the information.
+	 * @param muse
 	 */
-	public void receiveMuseDataPacket(final MuseDataPacket p, final Muse muse) {
+	public void receiveMuseDataPacket(final MuseDataPacket p, Muse muse) {
 		writeDataPacketToFile(p);
 
 		// valuesSize returns the number of data values contained in the packet.
@@ -630,17 +624,17 @@ public class MainActivity extends Activity implements OnClickListener {
 		if (fromFile) {
 			switch (p.packetType()) {
 				case EEG:
-					assert (eegBuffer.length >= n);
+					if ((eegBuffer.length < n)) throw new AssertionError();
 					getEegChannelValues(eegBuffer, p);
 					eegStale = true;
 					break;
 				case ACCELEROMETER:
-					assert (accelBuffer.length >= n);
+					if ((accelBuffer.length < n)) throw new AssertionError();
 					getAccelValues(p);
 					accelStale = true;
 					break;
 				case ALPHA_RELATIVE:
-					assert (alphaBuffer.length >= n);
+					if ((alphaBuffer.length < n)) throw new AssertionError();
 					getEegChannelValues(alphaBuffer, p);
 					alphaStale = true;
 					break;
@@ -662,12 +656,12 @@ public class MainActivity extends Activity implements OnClickListener {
 				*/
 				// kt:
 				case ACCELEROMETER:
-					assert (accelBuffer.length >= n);
+					if ((accelBuffer.length >= n)) throw new AssertionError();
 					getAccelValues(p);
 					accelStale = true;
 					break;
 				case ALPHA_RELATIVE:
-					assert (alphaBuffer.length >= n);
+					if ((alphaBuffer.length >= n)) throw new AssertionError();
 					getEegChannelValues(alphaBuffer, p);
 					alphaStale = true;
 					break;
@@ -704,10 +698,9 @@ public class MainActivity extends Activity implements OnClickListener {
 	// kt:
 	private void handleWaivePacket(MuseDataPacket p, final ArrayList<Double> data) //(MuseDataPacket p)
 	{
-		double elem1 = 0, elem2 = 0, elem3 = 0, elem4 = 0;
+		double elem1, elem2, elem3, elem4;
 
 		//final ArrayList<Double> data = p.getValues();
-		boolean got_data = false;
 		if ((pkt_timestamp == 0) || (pkt_timestamp == -1)) {
 			// 1.3.0 pkt_timestamp = p.getTimestamp();
 			pkt_timestamp = p.timestamp();
@@ -805,13 +798,13 @@ public class MainActivity extends Activity implements OnClickListener {
 				// 1.3.0 elem4 = data.get(Eeg.TP10.ordinal());
 				elem4 = data.get(Eeg.EEG4.ordinal());
 
-				if (validSensor[0] == true)
+				if (validSensor[0])
 					horseshoeElem[0] = (int) elem1;
-				if (validSensor[1] == true)
+				if (validSensor[1])
 					horseshoeElem[1] = (int) elem2;
-				if (validSensor[2] == true)
+				if (validSensor[2])
 					horseshoeElem[2] = (int) elem3;
-				if (validSensor[3] == true)
+				if (validSensor[3])
 					horseshoeElem[3] = (int) elem4;
 
 				got_data_mask |= Horseshoe;
@@ -876,13 +869,13 @@ public class MainActivity extends Activity implements OnClickListener {
 			long cur_tstamp = tstamp - data_time_stamp_ref;
 			long cur_pkt_tstamp = pkt_timestamp - pkt_timestamp_ref;
 			String strData = cur_pkt_tstamp + "," + cur_tstamp + "," +
-					eegElem[0] + "," + eegElem[3] + "," + eegElem[1] + "," + eegElem[2] + "," +
+					eegElem[0]           + "," + eegElem[3]           + "," + eegElem[1]                 + "," + eegElem[2]     + "," +
 					alphaAbsoluteElem[0] + "," + alphaAbsoluteElem[3] + "," + alphaAbsoluteElem[1] + "," + alphaAbsoluteElem[2] + "," +
-					betaAbsoluteElem[0] + "," + betaAbsoluteElem[3] + "," + betaAbsoluteElem[1] + "," + betaAbsoluteElem[2] + "," +
+					betaAbsoluteElem[0]  + "," + betaAbsoluteElem[3]  + "," + betaAbsoluteElem[1]  + "," + betaAbsoluteElem[2]  + "," +
 					deltaAbsoluteElem[0] + "," + deltaAbsoluteElem[3] + "," + deltaAbsoluteElem[1] + "," + deltaAbsoluteElem[2] + "," +
 					gammaAbsoluteElem[0] + "," + gammaAbsoluteElem[3] + "," + gammaAbsoluteElem[1] + "," + gammaAbsoluteElem[2] + "," +
 					thetaAbsoluteElem[0] + "," + thetaAbsoluteElem[3] + "," + thetaAbsoluteElem[1] + "," + thetaAbsoluteElem[2] + "," +
-					horseshoeElem[0] + "," + horseshoeElem[3] + "," + horseshoeElem[1] + "," + horseshoeElem[2] + "\r\n";
+					horseshoeElem[0]     + "," + horseshoeElem[3]     + "," + horseshoeElem[1]     + "," + horseshoeElem[2]     + "\r\n";
 
 			pkt_timestamp = 0; // for the next time
 			waive_pkt_cnt++; // for debug
@@ -927,9 +920,9 @@ public class MainActivity extends Activity implements OnClickListener {
 					//TextView tp10 = (TextView) findViewById(R.id.eeg_tp10);
 					//tp9.setText(String.format("%6.2f", data.get(Eeg.TP9.ordinal())));
 					// 1.3.0 fp1.setText(String.format("%6.2f", data.get(Eeg.FP1.ordinal())));
-					fp1.setText(String.format("%6.2f", data.get(Eeg.EEG2.ordinal())));
+					fp1.setText(String.format(locale,"%6.2f", data.get(Eeg.EEG2.ordinal())));
 					// 1.3.0 fp2.setText(String.format("%6.2f", data.get(Eeg.FP2.ordinal())));
-					fp2.setText(String.format("%6.2f", data.get(Eeg.EEG3.ordinal())));
+					fp2.setText(String.format(locale,"%6.2f", data.get(Eeg.EEG3.ordinal())));
 					//tp10.setText(String.format("%6.2f", data.get(Eeg.TP10.ordinal())));
 				}
 			});
@@ -943,10 +936,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	 * have registered for the ARTIFACTS data type.  MuseArtifactPackets are generated when
 	 * eye blinks are detected, the jaw is clenched and when the headband is put on or removed.
 	 *
-	 * @param p    The artifact packet with the data from the headband.
-	 * @param muse The headband that sent the information.
 	 */
-	public void receiveMuseArtifactPacket(final MuseArtifactPacket p, final Muse muse) {
+	public void receiveMuseArtifactPacket(MuseArtifactPacket p, final Muse muse) {
 	}
 
 	/**
@@ -992,7 +983,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		Button pauseButton = (Button) findViewById(R.id.pause);
 		pauseButton.setOnClickListener(this);
 
-		spinnerAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item);
+		spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item);
 		Spinner musesSpinner = (Spinner) findViewById(R.id.muses_spinner);
 		musesSpinner.setAdapter(spinnerAdapter);
 	}
@@ -1030,9 +1021,9 @@ public class MainActivity extends Activity implements OnClickListener {
 		TextView acc_x = (TextView) findViewById(R.id.acc_x);
 		TextView acc_y = (TextView) findViewById(R.id.acc_y);
 		TextView acc_z = (TextView) findViewById(R.id.acc_z);
-		acc_x.setText(String.format("%6.2f", accelBuffer[0]));
-		acc_y.setText(String.format("%6.2f", accelBuffer[1]));
-		acc_z.setText(String.format("%6.2f", accelBuffer[2]));
+		acc_x.setText(String.format(locale, "%6.2f", accelBuffer[0]));
+		acc_y.setText(String.format(locale, "%6.2f", accelBuffer[1]));
+		acc_z.setText(String.format(locale, "%6.2f", accelBuffer[2]));
 	}
 
 	private void updateEeg() {
@@ -1040,21 +1031,21 @@ public class MainActivity extends Activity implements OnClickListener {
 		TextView fp1 = (TextView) findViewById(R.id.eeg_af7);
 		TextView fp2 = (TextView) findViewById(R.id.eeg_af8);
 		TextView tp10 = (TextView) findViewById(R.id.eeg_tp10);
-		tp9.setText(String.format("%6.2f", eegBuffer[0]));
-		fp1.setText(String.format("%6.2f", eegBuffer[1]));
-		fp2.setText(String.format("%6.2f", eegBuffer[2]));
-		tp10.setText(String.format("%6.2f", eegBuffer[3]));
+		tp9.setText(String.format(locale, "%6.2f", eegBuffer[0]));
+		fp1.setText(String.format(locale, "%6.2f", eegBuffer[1]));
+		fp2.setText(String.format(locale, "%6.2f", eegBuffer[2]));
+		tp10.setText(String.format(locale, "%6.2f", eegBuffer[3]));
 	}
 
 	private void updateAlpha() {
 		TextView elem1 = (TextView) findViewById(R.id.elem1);
-		elem1.setText(String.format("%6.2f", alphaBuffer[0]));
+		elem1.setText(String.format(locale, "%6.2f", alphaBuffer[0]));
 		TextView elem2 = (TextView) findViewById(R.id.elem2);
-		elem2.setText(String.format("%6.2f", alphaBuffer[1]));
+		elem2.setText(String.format(locale, "%6.2f", alphaBuffer[1]));
 		TextView elem3 = (TextView) findViewById(R.id.elem3);
-		elem3.setText(String.format("%6.2f", alphaBuffer[2]));
+		elem3.setText(String.format(locale, "%6.2f", alphaBuffer[2]));
 		TextView elem4 = (TextView) findViewById(R.id.elem4);
-		elem4.setText(String.format("%6.2f", alphaBuffer[3]));
+		elem4.setText(String.format(locale, "%6.2f", alphaBuffer[3]));
 	}
 
 
@@ -1075,8 +1066,8 @@ public class MainActivity extends Activity implements OnClickListener {
 			// MuseFileWriter will append to an existing file.
 			// In this case, we want to start fresh so the file
 			// if it exists.
-			if (file.exists()) {
-				file.delete();
+			if (file.exists()) if (file.delete()) {
+				Log.d(TAG, "Deleted " + file.getAbsolutePath());
 			}
 			Log.d(TAG, "Writing data to: " + file.getAbsolutePath());
 			fileWriter.set(MuseFileFactory.getMuseFileWriter(file));
@@ -1126,8 +1117,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	// kt:
 	private void playAudioFeedback(int at_mode) {
-		int tone;
-		int play_tone = 0;
+		//int tone;
+		//int play_tone = 0;
 		int i = 0;
 		int k;
 
@@ -1152,14 +1143,16 @@ public class MainActivity extends Activity implements OnClickListener {
 		// infinite - user can connect/disconnect multiple times without exiting the app
 		while (true) {
 			if (stopSounds != 0) {
-				toneG.stopTone();
-				toneG = null;
-				Log.i("Muse Headband kt:", "Stopping ToneGenerator");
-				//stopSounds = 0;
+				if (toneG != null) {
+					toneG.stopTone();
+					toneG = null;
+					Log.i("Muse Headband kt:", "Stopping ToneGenerator");
+				}
 				// put thread to sleep
 				try {
 					Thread.sleep(1000); //let CPU rest
 				} catch (Exception e) {
+					Log.e(TAG, "Error stopping the Tone generator");
 				}
 				continue;
 			}
@@ -1187,6 +1180,7 @@ public class MainActivity extends Activity implements OnClickListener {
 			try {
 				Thread.sleep(1000); //let CPU rest
 			} catch (Exception e) {
+				Log.e(TAG, "Unable to put thread to sleep");
 			}
 		} // infinite loop
 	}
@@ -1213,8 +1207,8 @@ public class MainActivity extends Activity implements OnClickListener {
 			int id = fileReader.getMessageId();
 			long timestamp = fileReader.getMessageTimestamp();
 			Log.d(tag, "type: " + type.toString() +
-					" id: " + Integer.toString(id) +
-					" timestamp: " + String.valueOf(timestamp));
+					        " id: "  + id +
+					        " timestamp: " + timestamp);
 			switch (type) {
 				case EEG:
 				case BATTERY:
@@ -1228,8 +1222,7 @@ public class MainActivity extends Activity implements OnClickListener {
 					MuseVersion museVersion = fileReader.getVersion();
 					final String version = museVersion.getFirmwareType() +
 							" - " + museVersion.getFirmwareVersion() +
-							" - " + Integer.toString(
-							museVersion.getProtocolVersion());
+							" - " + museVersion.getProtocolVersion();
 					Log.d(tag, "version " + version);
 					Activity activity = dataListener.activityRef.get();
 					// UI thread is used here only because we need to update
@@ -1302,8 +1295,8 @@ public class MainActivity extends Activity implements OnClickListener {
 			long timestamp = fileReader.getMessageTimestamp();
 
 			Log.i(tag, "type: " + type.toString() +
-					" id: " + Integer.toString(id) +
-					" timestamp: " + String.valueOf(timestamp));
+					        " id: " + id +
+					        " timestamp: " + timestamp);
 
 			switch (type) {
 				// EEG messages contain raw EEG data or DRL/REF data.
@@ -1344,7 +1337,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	//
 	// Each of these classes extend from the appropriate listener and contain a weak reference
 	// to the activity.  Each class simply forwards the messages it receives back to the Activity.
-	class MuseL extends MuseListener {
+	static class MuseL extends MuseListener {
 		final WeakReference<MainActivity> activityRef;
 
 		MuseL(final WeakReference<MainActivity> activityRef) {
@@ -1357,7 +1350,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 	}
 
-	class ConnectionListener extends MuseConnectionListener {
+	static class ConnectionListener extends MuseConnectionListener {
 		final WeakReference<MainActivity> activityRef;
 
 		ConnectionListener(final WeakReference<MainActivity> activityRef) {
@@ -1370,7 +1363,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 	}
 
-	class DataListener extends MuseDataListener {
+	static class DataListener extends MuseDataListener {
 		final WeakReference<MainActivity> activityRef;
 
 		DataListener(final WeakReference<MainActivity> activityRef) {
@@ -1390,26 +1383,24 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	// kt: new stuff
 	private void musePlayTone(ToneGenerator paramToneGenerator, int toneIdx) {
-		if (validSensor[toneIdx] == false) {
-			return;
-		}
-
-		if (paramToneGenerator == null) {
-			paramToneGenerator = new ToneGenerator(4, 100);
-		}
-		for (; ; ) {
-			paramToneGenerator.startTone(HorseshoeTones[toneIdx]);
-			try {
-				Thread.sleep(this.tone_on_duration / 8);
-				paramToneGenerator.stopTone();
+		if (validSensor[toneIdx]) {
+			if (paramToneGenerator == null) {
+				paramToneGenerator = new ToneGenerator(4, 100);
+			}
+			for (; ; ) {
+				paramToneGenerator.startTone(HorseshoeTones[toneIdx]);
 				try {
-					Thread.sleep(this.tone_off_duration / 2);
-					return;
+					Thread.sleep(this.tone_on_duration / 8);
+					paramToneGenerator.stopTone();
+					try {
+						Thread.sleep(this.tone_off_duration / 2);
+						return;
+					} catch (Exception e) {
+						Log.e("Muse Headband exception", e.toString());
+					}
 				} catch (Exception e) {
 					Log.e("Muse Headband exception", e.toString());
 				}
-			} catch (Exception e) {
-				Log.e("Muse Headband exception", e.toString());
 			}
 		}
 	}
