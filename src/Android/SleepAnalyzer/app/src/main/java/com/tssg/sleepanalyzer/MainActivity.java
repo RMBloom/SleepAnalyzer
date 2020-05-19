@@ -50,6 +50,7 @@ import com.choosemuse.libmuse.ResultLevel;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
 import android.graphics.Typeface;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
@@ -367,13 +368,20 @@ public class MainActivity extends Activity implements OnClickListener {
 			});
 			playFileThread.setName("File Player");
 			playFileThread.start();
+
 		} else {
 			Log.w(method, "test file doesn't exist");
 
 			// Check for faulty API
-			//	API 25 (7.1.1)
+			//	API 17 (4.2) &
+			//	API 18 (4.3) &
+			//	API 22 (5.1) &
+			//	API 25 (7.1)
 			// has problem with this audioFeedbackThread
-			if (!android.os.Build.VERSION.RELEASE.startsWith("7.1.")) {
+			if (!android.os.Build.VERSION.RELEASE.startsWith("4.2.") &&
+				!android.os.Build.VERSION.RELEASE.startsWith("4.3.") &&
+				!android.os.Build.VERSION.RELEASE.startsWith("5.1.") &&
+				!android.os.Build.VERSION.RELEASE.startsWith("7.1.")) {
 				//kt:
 				// start the audio feedback thread
 				Thread audioFeedbackThread = new Thread(new Runnable() {
@@ -391,12 +399,14 @@ public class MainActivity extends Activity implements OnClickListener {
 		// RB
 
 		// Check for faulty APIs
-		//	API 17 (4.2.2) &
-		//	API 18 (4.3.1) &
-		//	API 25 (7.1.1)
+		//	API 17 (4.2) &
+		//	API 18 (4.3) &
+		//	API 22 (5.1) &
+		//	API 25 (7.1)
 		//	have faulty Tone Generator support
 		if (!android.os.Build.VERSION.RELEASE.startsWith("4.2.") &&
 			!android.os.Build.VERSION.RELEASE.startsWith("4.3.") &&
+			!android.os.Build.VERSION.RELEASE.startsWith("5.1.") &&
 			!android.os.Build.VERSION.RELEASE.startsWith("7.1.")) {
 			// kt: initial audio test
 			Log.d("Muse Headband", "sound test start");
@@ -415,9 +425,9 @@ public class MainActivity extends Activity implements OnClickListener {
 		manager.stopListening();
 	}
 
-//	public boolean isBluetoothEnabled() {
-//		return BluetoothAdapter.getDefaultAdapter().isEnabled();
-//	}
+	public boolean isBluetoothEnabled() {
+		return BluetoothAdapter.getDefaultAdapter().isEnabled();
+	}
 
 	@Override
 	public void onClick(View v) {
@@ -613,9 +623,8 @@ public class MainActivity extends Activity implements OnClickListener {
 	 * a single listener for all packet types as we have done here.
 	 *
 	 * @param p    The data packet containing the data from the headband (eg. EEG data)
-	 * @param muse
 	 */
-	public void receiveMuseDataPacket(final MuseDataPacket p, Muse muse) {
+	public void receiveMuseDataPacket(final MuseDataPacket p) {
 		writeDataPacketToFile(p);
 
 		// valuesSize returns the number of data values contained in the packet.
@@ -937,8 +946,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	 * eye blinks are detected, the jaw is clenched and when the headband is put on or removed.
 	 *
 	 */
-	public void receiveMuseArtifactPacket(MuseArtifactPacket p, final Muse muse) {
-	}
+	public void receiveMuseArtifactPacket(MuseArtifactPacket p, final Muse muse) {	}
 
 	/**
 	 * Helper methods to get different packet values.  These methods simply store the
@@ -1372,7 +1380,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		@Override
 		public void receiveMuseDataPacket(final MuseDataPacket p, final Muse muse) {
-			activityRef.get().receiveMuseDataPacket(p, muse);
+			activityRef.get().receiveMuseDataPacket(p);
 		}
 
 		@Override
